@@ -85,7 +85,7 @@ Before creating the skill, search the web for current information when:
 **When to search:**
 - The topic involves specific technologies, frameworks, or tools
 - You're uncertain about current best practices
-- The solution might have changed after January 2025 (knowledge cutoff)
+- The solution might have changed after May 2025 (knowledge cutoff)
 - There might be official documentation or community standards
 - You want to verify your understanding is current
 
@@ -141,6 +141,18 @@ date: [YYYY-MM-DD]
 
 ## Solution
 [Step-by-step solution or knowledge to apply]
+
+## Design Rules
+[Design principles guiding correct use and future maintenance of this skill.
+Answer: "Why is it designed this way? What must not change in future edits?"
+For simple skills (single error fix): 1-2 rules suffice
+For complex workflow skills: 3-10 rules covering key design invariants]
+
+## Failure Modes
+[Known scenarios where this skill may produce incorrect or misleading results.
+Answer: "When might this skill give a wrong answer?"
+Format: - **[Mode]**: [symptom] → [mitigation]
+Minimum: 1 starter entry for any new skill; append more as usage reveals new failures]
 
 ## Verification
 [How to verify the solution worked]
@@ -221,6 +233,8 @@ Before finalizing a skill, verify:
 
 - [ ] Description contains specific trigger conditions
 - [ ] Solution has been verified to work
+- [ ] Design Rules contain substantive design principles (not just placeholders)
+- [ ] Failure Modes list at least one known failure scenario with mitigation
 - [ ] Content is specific enough to be actionable
 - [ ] Content is general enough to be reusable
 - [ ] No sensitive information (credentials, internal URLs) is included
@@ -251,6 +265,8 @@ Skills should evolve:
 **Scenario**: While debugging a Next.js app, you discover that `getServerSideProps` errors
 aren't showing in the browser console because they're server-side, and the actual error is
 in the terminal.
+
+**Deduplication check**: No matching skills found (searched existing skill directories).
 
 **Step 1 - Identify the Knowledge**:
 - Problem: Server-side errors don't appear in browser console
@@ -299,9 +315,28 @@ debugging frustrating when you're looking in the wrong place.
 4. Use Next.js error handling: return `{ notFound: true }` or `{ redirect: {...} }` 
    instead of throwing
 
+## Design Rules
+- Always check terminal/server logs before browser console for SSR errors — this
+  is the core diagnostic principle; skipping it wastes time looking in the wrong place
+- Prefer structured error responses (`notFound`, `redirect`) over throwing — produces
+  actionable error states instead of generic error pages
+
+## Failure Modes
+- **Custom error boundaries masking errors**: If `_error.tsx` or `error.tsx` swallows
+  errors before logging, terminal may also appear clean → inspect error boundary code
+  for silent catches
+- **Containerized deployments**: Server logs may route to container stdout rather than
+  the visible terminal → check `docker logs` or orchestrator dashboards (CloudWatch,
+  Datadog)
+
 ## Verification
 After checking terminal, you should see the actual stack trace with file 
 and line numbers.
+
+## Example
+User reports "Internal Server Error" on /dashboard. Browser console: empty.
+Terminal shows: `TypeError: Cannot read property 'id' of undefined` at 
+`pages/dashboard.tsx:15`. Root cause: database query returned null.
 
 ## Notes
 - This applies to all server-side code in Next.js, not just data fetching

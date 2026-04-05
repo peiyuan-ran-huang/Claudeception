@@ -26,8 +26,8 @@ This document compiles the academic research that informed the design of Claudec
 
 ### CASCADE: Cumulative Agentic Skill Creation through Autonomous Development and Evolution
 
-**Authors**: [Research Team]  
-**Published**: December 2024  
+**Authors**: Huang, Chen, Fei, Li, Schwaller, Ceder  
+**Published**: December 2025  
 **URL**: https://arxiv.org/abs/2512.23880
 
 **Key Contribution**: Self-evolving agentic framework demonstrating the transition from "LLM + tool use" to "LLM + skill acquisition."
@@ -80,8 +80,9 @@ This document compiles the academic research that informed the design of Claudec
 
 ### EvoFSM: Controllable Self-Evolution for Deep Research with Finite State Machines
 
-**Authors**: [Research Team]  
-**Published**: 2024
+**Authors**: Zhang, Yuan, Guo, Yu, Xu, Chen, Li, Yang, Guan, Tang, Hu, Zhang, Chen, Wang  
+**Published**: January 2026  
+**URL**: https://arxiv.org/abs/2601.09465
 
 **Key Contribution**: Self-evolving framework with experience pools for continuous learning.
 
@@ -97,19 +98,23 @@ This document compiles the academic research that informed the design of Claudec
 
 ### Professional Agents: Evolving LLMs into Autonomous Experts
 
+**Authors**: Chu, Wang, Zhu, Yu, Li, Gu  
+**Published**: February 2024  
 **URL**: https://arxiv.org/abs/2402.03628
 
 Describes a framework for creating agents with specialized expertise through continuous learning. Influenced our quality criteria for what makes a skill worth extracting.
 
 ### Self-Reflection in LLM Agents: Effects on Problem-Solving Performance
 
+**Authors**: Renze, Guven  
+**Published**: May 2024  
 **URL**: https://arxiv.org/abs/2405.06682
 
 Empirical study showing self-reflection improves performance. Validated our use of reflection prompts for identifying extractable knowledge.
 
 ### Building Scalable and Reliable Agentic AI Systems
 
-Comprehensive survey covering memory architectures, tool use, and continuous learning in agentic AI. Provided the broader architectural context for our design.
+Comprehensive survey covering memory architectures, tool use, and continuous learning in agentic AI. Provided the broader architectural context for our design. *(Full citation details not available — no arXiv ID identified for this reference.)*
 
 ---
 
@@ -178,6 +183,6 @@ If referencing this skill in academic work:
   title={Claudeception: Autonomous Skill Extraction for LLM Agents},
   author={Claude Code},
   year={2024},
-  note={Implements continuous learning patterns from Voyager, CASCADE, SEAgent, and Reflexion research}
+  note={Implements continuous learning patterns from Voyager, CASCADE, SEAgent, Reflexion, and EvoFSM research}
 }
 ```

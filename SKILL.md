@@ -1,13 +1,8 @@
 ---
-name: claudeception
-description: |
-  Claudeception is a continuous learning system that extracts reusable knowledge from work sessions.
-  Triggers: (1) /claudeception command to review session learnings, (2) "save this as a skill"
-  or "extract a skill from this", (3) "what did we learn?", (4) After any task involving
-  non-obvious debugging, workarounds, or trial-and-error discovery. Creates new Claude Code
-  skills when valuable, reusable knowledge is identified.
+name: claudeception (自动skills提取)
+description: Claudeception is a continuous learning system that extracts reusable knowledge from work sessions. Triggers on /claudeception command, "save this as a skill", "what did we learn?", or after tasks involving non-obvious debugging, workarounds, or trial-and-error discovery. Creates new Claude Code skills when valuable, reusable knowledge is identified. Also captures tentative instinct notes for emerging patterns not yet ready for full skill extraction — lightweight YAML notes with confidence scoring in memory/tentative/. (中文 - 将工作中发现的调试技巧和解决方案自动保存为可复用的 skill，同时以试探性 YAML 笔记捕获尚未成熟的 pattern)
 author: Claude Code
-version: 3.0.0
+version: 4.0.0
 allowed-tools:
   - Read
   - Write
@@ -67,26 +62,19 @@ Before extracting, verify the knowledge meets these criteria:
 
 **Goal:** Find related skills before creating. Decide: update or create new.
 
-```sh
-# Skill directories (project-first, then user-level)
-SKILL_DIRS=(
-  ".claude/skills"
-  "$HOME/.claude/skills"
-  "$HOME/.codex/skills"
-  # Add other tool paths as needed
-)
+```
+# Use Glob to list all skills (project-first, then user-level)
+Glob(pattern="**/SKILL.md", path=".claude/skills")
+Glob(pattern="**/SKILL.md", path="~/.claude/skills")
 
-# List all skills
-rg --files -g 'SKILL.md' "${SKILL_DIRS[@]}" 2>/dev/null
-
-# Search by keywords
-rg -i "keyword1|keyword2" "${SKILL_DIRS[@]}" 2>/dev/null
+# Use Grep to search by keywords
+Grep(pattern="keyword1|keyword2", path="~/.claude/skills")
 
 # Search by exact error message
-rg -F "exact error message" "${SKILL_DIRS[@]}" 2>/dev/null
+Grep(pattern="exact error message", path="~/.claude/skills")
 
 # Search by context markers (files, functions, config keys)
-rg -i "getServerSideProps|next.config.js|prisma.schema" "${SKILL_DIRS[@]}" 2>/dev/null
+Grep(pattern="getServerSideProps|next.config.js|prisma.schema", path="~/.claude/skills")
 ```
 
 | Found                                            | Action                                                   |
@@ -110,6 +98,28 @@ Analyze what was learned:
 - What would someone need to know to solve this faster next time?
 - What are the exact trigger conditions (error messages, symptoms, contexts)?
 
+### Step 2.5: Triage — Full Skill vs Tentative Note
+
+After identifying the knowledge, decide which extraction path to take:
+
+| Criteria Check | Path |
+|---------------|------|
+| All 4 Quality Criteria met (Reusable + Non-trivial + Specific + Verified) | **Full skill** → continue to Step 3 |
+| Specific is met, plus at least 1 other criterion has partial evidence | **Tentative note** → see below |
+| Cannot describe a clear trigger + action (Specific not met) | **Discard** — not worth capturing |
+
+"Partial evidence" means at least Non-trivial or Reusable shows initial signs (e.g., "this pattern
+likely applies elsewhere but hasn't been verified across contexts"). A 3-of-4 case (e.g., Reusable +
+Non-trivial + Specific but not Verified) takes the tentative path — missing any criterion disqualifies
+from full skill extraction.
+
+**Tentative note path** (skips Steps 3-6):
+1. Ensure `memory/tentative/` directory exists (Write tool creates parent directories automatically)
+2. Check for existing notes: match by filename `{name}.yaml`, fall back to LLM-assessed trigger similarity
+3. If match found: update `confidence`, add observation entry, update `last_seen`
+4. If new: create YAML note from `resources/instinct-template.yaml` with initial confidence 0.4
+5. See `resources/tentative-knowledge.md` for detailed confidence rules and edge cases
+
 ### Step 3: Research Best Practices (When Appropriate)
 
 Before creating the skill, search the web for current information when:
@@ -124,7 +134,7 @@ Before creating the skill, search the web for current information when:
 **When to search:**
 - The topic involves specific technologies, frameworks, or tools
 - You're uncertain about current best practices
-- The solution might have changed after January 2025 (knowledge cutoff)
+- The solution might have changed after May 2025 (knowledge cutoff)
 - There might be official documentation or community standards
 - You want to verify your understanding is current
 
@@ -181,6 +191,18 @@ date: [YYYY-MM-DD]
 ## Solution
 [Step-by-step solution or knowledge to apply]
 
+## Design Rules
+[Design principles guiding correct use and future maintenance of this skill.
+Answer: "Why is it designed this way? What must not change in future edits?"
+For simple skills (single error fix): 1-2 rules suffice
+For complex workflow skills: 3-10 rules covering key design invariants]
+
+## Failure Modes
+[Known scenarios where this skill may produce incorrect or misleading results.
+Answer: "When might this skill give a wrong answer?"
+Format: - **[Mode]**: [symptom] → [mitigation]
+Minimum: 1 starter entry for any new skill; append more as usage reveals new failures]
+
 ## Verification
 [How to verify the solution worked]
 
@@ -227,10 +249,15 @@ executable helpers.
 When `/claudeception` is invoked at the end of a session:
 
 1. **Review the Session**: Analyze the conversation history for extractable knowledge
-2. **Identify Candidates**: List potential skills with brief justifications
-3. **Prioritize**: Focus on the highest-value, most reusable knowledge
-4. **Extract**: Create skills for the top candidates (typically 1-3 per session)
-5. **Summarize**: Report what skills were created and why
+2. **Scan Tentative Notes**: Check `memory/tentative/*.yaml` for:
+   - Existing notes that match observations from this session (update confidence)
+   - Notes meeting promotion threshold (confidence >= 0.7, observations >= 2 from distinct sessions)
+   - Notes declined for promotion twice in separate sessions (skip auto-suggest; see `resources/tentative-knowledge.md` § Promotion Declined Twice)
+   - Stale notes past expiry thresholds (flag for cleanup; promotion takes precedence over stale)
+3. **Identify Candidates**: List potential skills (from session + promoted tentative notes)
+4. **Prioritize**: Focus on the highest-value, most reusable knowledge
+5. **Extract**: Create skills for the top candidates (typically 1-3 per session)
+6. **Summarize**: Report what skills were created, tentative notes updated, and promotions suggested
 
 ## Self-Reflection Prompts
 
@@ -260,6 +287,8 @@ Before finalizing a skill, verify:
 
 - [ ] Description contains specific trigger conditions
 - [ ] Solution has been verified to work
+- [ ] Design Rules contain substantive design principles (not just placeholders)
+- [ ] Failure Modes list at least one known failure scenario with mitigation
 - [ ] Content is specific enough to be actionable
 - [ ] Content is general enough to be reusable
 - [ ] No sensitive information (credentials, internal URLs) is included
@@ -267,6 +296,8 @@ Before finalizing a skill, verify:
 - [ ] Web research conducted when appropriate (for technology-specific topics)
 - [ ] References section included if web sources were consulted
 - [ ] Current best practices (post-2025) incorporated when relevant
+- [ ] If knowledge doesn't meet all 4 Quality Criteria: considered tentative note path before discarding
+- [ ] Tentative notes contain valid trigger condition and confidence in [0.1, 0.95]
 
 ## Anti-Patterns to Avoid
 
@@ -276,14 +307,73 @@ Before finalizing a skill, verify:
 - **Documentation duplication**: Don't recreate official docs; link to them and add what's missing.
 - **Stale knowledge**: Mark skills with versions and dates; knowledge can become outdated.
 
+## Failure Modes
+
+- **Duplicate detection semantic gap**: Keyword-based grep search for existing skills can miss semantically similar skills using different terminology, producing fragmented or contradictory guidance across the skills directory. *Mitigation*: Search by topic area and description, not just filename keywords; review `ls ~/.claude/skills/` listing before creating.
+- **Stale skill without expiry signal**: Skills capture point-in-time knowledge with a `date` field but no staleness detection. Framework or tool updates silently invalidate skill content. *Mitigation*: Include version-specific markers in generated skills; flag skills older than 90 days for review.
+- **Over-extraction dilution**: Subjective trigger thresholds (e.g., ">10 minutes of investigation") can produce marginal skills that clutter the directory and increase per-session context overhead without proportional value. *Mitigation*: Apply quality gates strictly; prefer updating existing skills over creating new ones; consolidate related micro-skills.
+- **Template compliance erosion**: Quality gates are a checklist but not programmatically enforced. Under context pressure or time constraints, extractions may skip required sections (Design Rules, Failure Modes), producing structurally incomplete skills. *Mitigation*: Verify all required sections exist before writing the file; treat a missing section as a blocking error, not a warning.
+- **Web research false authority**: Pre-creation web search may return outdated or incorrect information that gets codified as authoritative skill content, especially for rapidly evolving tools and frameworks. *Mitigation*: Note research date in the skill; cross-reference multiple sources; flag web-sourced claims with "verify before relying."
+- **Sensitive information leakage**: Automated extraction during debugging sessions involving auth tokens, API keys, or internal endpoints can inadvertently capture sensitive data into skill files stored in version-controlled directories. *Mitigation*: Scan extracted content for credential patterns (API keys, tokens, passwords) before writing; never include actual secret values in examples.
+- **Tentative knowledge confidence inflation**: Repeated observations in the same context accumulate +0.15 confidence each, potentially pushing a note past the 0.7 promotion threshold without genuine cross-context validation. The "distinct sessions" guard in the promotion rule (>=2 observations from >=2 distinct sessions) can be circumvented if session boundaries are ambiguous or if a single problem recurs across nominally different sessions without truly different contexts. *Mitigation*: Weigh cross-context observations (+0.20) more heavily in promotion decisions; during Retrospective Mode promotion review, verify that the distinct sessions involved genuinely different problem contexts, not just different calendar dates for the same task.
+- **Update-vs-create misclassification**: Even when Step 1 search correctly identifies related existing skills, the decision table (create new / update existing / add variant / mark deprecated) relies on subjective judgment about "same trigger, different root cause" vs "partial overlap." Incorrect classification produces either fragmented duplicate skills that confuse semantic matching, or inappropriate merging that dilutes the specificity of the original skill. *Mitigation*: When the decision is ambiguous between "create new" and "update existing," default to updating with a new Variant subsection (reversible); require explicit justification in the skill's Notes section when creating a new skill in a domain where related skills already exist.
+- **Under-extraction from trigger bypass**: The Self-Check prompts and Automatic Trigger Conditions are soft heuristics with no enforcement mechanism. Under context pressure, rapid task switching, or when the agent is focused on delivering user-facing results, the self-check is silently skipped, causing valuable extractable knowledge to be lost. This is the inverse of over-extraction dilution. *Mitigation*: Retrospective Mode (/claudeception at session end) serves as a catch-all safety net; encourage users to invoke it at the end of substantive debugging or investigation sessions.
+- **Tool unavailability silent degradation**: Steps assume all allowed-tools are available. If WebSearch/WebFetch are denied or unavailable, Step 3 (Research) fails silently; if Write fails on `memory/tentative/`, Step 2.5 tentative notes cannot be persisted. *Mitigation*: If WebSearch/WebFetch unavailable, skip Step 3 and note "web research skipped — verify post-2025 accuracy manually" in the skill's Notes section. If Write fails for tentative notes, report the note content to the user for manual saving instead of silently dropping it.
+
 ## Skill Lifecycle
 
 Skills should evolve:
 
+0. **Tentative**: Lightweight YAML note with confidence scoring; may be promoted or expire
 1. **Creation**: Initial extraction with documented verification
-2. **Refinement**: Update based on additional use cases or edge cases discovered
+2. **Refinement**: Update based on additional use cases or edge cases discovered;
+   append new Failure Modes and refine Design Rules as usage reveals new patterns
 3. **Deprecation**: Mark as deprecated when underlying tools/patterns change
 4. **Archival**: Remove or archive skills that are no longer relevant
+
+## Tentative Knowledge Management
+
+Tentative notes capture emerging patterns that don't yet meet all 4 Quality Criteria. They live
+in `memory/tentative/` as lightweight YAML files, accumulating confidence through repeated
+observations until they are promoted to full skills or expire.
+
+**Schema**: See `resources/instinct-template.yaml` for the YAML template with field documentation.
+
+### Confidence Rules (Summary)
+
+| Event | Delta |
+|-------|-------|
+| Initial observation | 0.4 (starting value) |
+| Re-observed in same context | +0.15 |
+| Observed in different context | +0.20 |
+| User explicit confirmation | +0.30 (confidence only; does NOT count as an observation) |
+| Counter-example observed | −0.20 |
+
+Confidence is clamped to [0.1, 0.95] after each adjustment.
+
+### Promotion
+
+A tentative note is eligible for promotion when **both** conditions are met:
+- `confidence >= 0.7`
+- `observations >= 2` from **>= 2 distinct sessions or dates**
+
+During Retrospective Mode, eligible notes are presented for user confirmation. If confirmed,
+the note's content pre-fills Steps 3-6 to create a full skill; the YAML file is then deleted.
+
+### Expiry
+
+| Condition | Action |
+|-----------|--------|
+| 90 days since `last_seen`, no new observation | Mark stale; prompt for cleanup |
+| 180 days since `last_seen` | Auto-delete |
+| `confidence < 0.3` AND 60 days since `last_seen` | Early delete |
+
+If a note simultaneously meets promotion thresholds and stale criteria, **promotion takes precedence**.
+
+### Detailed Rules
+
+See `resources/tentative-knowledge.md` for complete rules on confidence arithmetic edge cases,
+promotion protocol, expiry details, deduplication strategy, and cross-project aggregation (v4.1.0 placeholder).
 
 ## Example: Complete Extraction Flow
 
@@ -291,18 +381,20 @@ Skills should evolve:
 aren't showing in the browser console because they're server-side, and the actual error is
 in the terminal.
 
-**Step 1 - Identify the Knowledge**:
+**Step 1 - Check for Existing Skills**: No matching skills found.
+
+**Step 2 - Identify the Knowledge**:
 - Problem: Server-side errors don't appear in browser console
 - Non-obvious aspect: Expected behavior for server-side code in Next.js
 - Trigger: Generic error page with empty browser console
 
-**Step 2 - Research Best Practices**:
+**Step 3 - Research Best Practices**:
 Search: "Next.js getServerSideProps error handling best practices 2026"
 - Found official docs on error handling
 - Discovered recommended patterns for try-catch in data fetching
 - Learned about error boundaries for server components
 
-**Step 3-5 - Structure and Save**:
+**Steps 4-6 - Structure and Save**:
 
 **Extraction**:
 
@@ -338,9 +430,28 @@ debugging frustrating when you're looking in the wrong place.
 4. Use Next.js error handling: return `{ notFound: true }` or `{ redirect: {...} }` 
    instead of throwing
 
+## Design Rules
+- Always check terminal/server logs before browser console for SSR errors — this
+  is the core diagnostic principle; skipping it wastes time looking in the wrong place
+- Prefer structured error responses (`notFound`, `redirect`) over throwing — produces
+  actionable error states instead of generic error pages
+
+## Failure Modes
+- **Custom error boundaries masking errors**: If `_error.tsx` or `error.tsx` swallows
+  errors before logging, terminal may also appear clean → inspect error boundary code
+  for silent catches
+- **Containerized deployments**: Server logs may route to container stdout rather than
+  the visible terminal → check `docker logs` or orchestrator dashboards (CloudWatch,
+  Datadog)
+
 ## Verification
 After checking terminal, you should see the actual stack trace with file 
 and line numbers.
+
+## Example
+User reports "Internal Server Error" on /dashboard. Browser console: empty.
+Terminal shows: `TypeError: Cannot read property 'id' of undefined` at 
+`pages/dashboard.tsx:15`. Root cause: database query returned null.
 
 ## Notes
 - This applies to all server-side code in Next.js, not just data fetching
@@ -352,6 +463,9 @@ and line numbers.
 - [Next.js Data Fetching: getServerSideProps](https://nextjs.org/docs/pages/building-your-application/data-fetching/get-server-side-props)
 - [Next.js Error Handling](https://nextjs.org/docs/pages/building-your-application/routing/error-handling)
 ```
+
+> **Tentative path**: If Step 2.5 routes to tentative, skip Steps 3-6 and create a YAML note per
+> `resources/instinct-template.yaml` with initial confidence 0.4. See Step 2.5 for the full flow.
 
 ## Integration with Workflow
 

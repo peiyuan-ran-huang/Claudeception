@@ -47,6 +47,24 @@ What pain point does this solve? Why is it non-obvious?]
 
 [Include alternatives or variations if relevant]
 
+## Design Rules
+
+[Design principles guiding correct use and future maintenance of this skill.
+Answer: "Why is it designed this way? What must not change in future edits?"
+For simple skills (single error fix): 1-2 rules suffice.
+For complex workflow skills: 3-10 rules covering key design invariants.]
+
+- [Rule 1: Core design principle and rationale]
+- [Rule 2: Key invariant that must be preserved]
+
+## Failure Modes
+
+[Known scenarios where this skill may produce incorrect or misleading results.
+Answer: "When might this skill give a wrong answer?"
+Minimum: 1 starter entry for any new skill; append more as usage reveals new failures.]
+
+- **[Failure mode 1]**: [symptom] → [mitigation]
+
 ## Verification
 
 [How to confirm the solution worked:]
@@ -91,5 +109,7 @@ Extraction Checklist (remove before saving):
 - [ ] Verification steps are included
 - [ ] Example is concrete and realistic
 - [ ] Notes cover edge cases and caveats
+- [ ] Design Rules contain substantive design principles (not just placeholders)
+- [ ] Failure Modes list at least one known failure scenario with mitigation
 - [ ] No sensitive information (credentials, internal URLs)
 -->
