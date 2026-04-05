@@ -81,6 +81,16 @@ Check your hosting provider's logs:
 4. **Async/await**: Missing await on async operations
 5. **JSON serialization**: Objects that can't be serialized (dates, functions)
 
+## Design Rules
+
+- Always check terminal/server logs before browser console for SSR errors — this is the core diagnostic principle; looking in the browser first wastes debugging time
+- Prefer structured error responses (`{ notFound: true }`, `{ redirect: {...} }`) over throwing — they produce actionable error states instead of generic error pages
+
+## Failure Modes
+
+- **Custom error boundaries masking errors**: If `_error.tsx` or `error.tsx` swallows errors without logging, the terminal may also appear clean → inspect error boundary code for silent catches
+- **Containerized/serverless deployments**: Server logs may route to container stdout rather than a visible terminal → check `docker logs`, provider dashboards (Vercel Functions, CloudWatch), or structured logging services
+
 ## Verification
 
 After checking the terminal, you should see:

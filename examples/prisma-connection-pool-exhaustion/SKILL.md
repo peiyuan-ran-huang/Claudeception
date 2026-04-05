@@ -123,6 +123,16 @@ Add these to your connection string:
 - `pool_timeout=20`: Wait up to 20s for available connection
 - `connect_timeout=10`: Fail fast if can't connect in 10s
 
+## Design Rules
+
+- Limit connections per serverless instance (`connection_limit=1`) and route traffic through a connection pooler — the root cause is unbounded connection growth from cold starts, so both constraints must be in place simultaneously
+- Use the global singleton pattern only for development hot-reload protection — in production serverless, each function instance is isolated, so the singleton has no effect
+
+## Failure Modes
+
+- **Non-serverless environment**: If the app runs on a long-lived server (e.g., traditional Node.js on EC2/VPS), `connection_limit=1` starves throughput — this skill assumes serverless; for persistent servers, use default pool sizing
+- **Pooler misconfiguration**: Using a PgBouncer URL without `?pgbouncer=true` (Supabase) or wrong port can silently fall back to direct connections → verify pooler is active via database dashboard connection count
+
 ## Verification
 
 After applying fixes:

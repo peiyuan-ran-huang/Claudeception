@@ -187,6 +187,16 @@ module.exports = {
 }
 ```
 
+## Design Rules
+
+- Resolve cycles by extracting shared interfaces into a dedicated file that imports from neither side — this breaks the cycle structurally rather than masking it with lazy imports
+- Prefer `import type` for type-only dependencies — it is erased at compile time and cannot create runtime cycles, making it the safest first step before restructuring
+
+## Failure Modes
+
+- **Indirect cycles through barrel files**: `madge --circular` may miss cycles that traverse through `index.ts` re-exports unless all file extensions are covered → include all relevant extensions (ts, tsx, js, jsx) and audit barrel files manually
+- **Dynamic import masking**: Using `await import()` hides the cycle from static analysis but the underlying design problem remains — it can resurface if the dynamic import is later refactored to a static one → treat dynamic imports as a temporary fix, not a permanent resolution
+
 ## Verification
 
 1. Run `madge --circular src/` - should report no cycles
