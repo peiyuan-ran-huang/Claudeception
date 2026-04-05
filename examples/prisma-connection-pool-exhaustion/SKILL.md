@@ -125,7 +125,7 @@ Add these to your connection string:
 
 ## Design Rules
 
-- Limit connections per serverless instance (`connection_limit=1`) and route traffic through a connection pooler — the root cause is unbounded connection growth from cold starts, so both constraints must be in place simultaneously
+- Limit connections per serverless instance (`connection_limit=1`) and route traffic through a connection pooler — the root cause is unbounded connection growth from cold starts, so applying both constraints together provides the most robust fix
 - Use the global singleton pattern only for development hot-reload protection — in production serverless, each function instance is isolated, so the singleton has no effect
 
 ## Failure Modes

@@ -194,7 +194,7 @@ module.exports = {
 
 ## Failure Modes
 
-- **Indirect cycles through barrel files**: `madge --circular` may miss cycles that traverse through `index.ts` re-exports unless all file extensions are covered → include all relevant extensions (ts, tsx, js, jsx) and audit barrel files manually
+- **Indirect cycles through barrel files**: `madge --circular` may miss cycles that traverse through `index.ts` re-exports, especially with TypeScript path aliases → use `--ts-config tsconfig.json` to enable path resolution, include all relevant extensions (ts, tsx, js, jsx), and audit barrel files manually
 - **Dynamic import masking**: Using `await import()` hides the cycle from static analysis but the underlying design problem remains — it can resurface if the dynamic import is later refactored to a static one → treat dynamic imports as a temporary fix, not a permanent resolution
 
 ## Verification

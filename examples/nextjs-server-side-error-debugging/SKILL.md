@@ -88,7 +88,7 @@ Check your hosting provider's logs:
 
 ## Failure Modes
 
-- **Custom error boundaries masking errors**: If `_error.tsx` or `error.tsx` swallows errors without logging, the terminal may also appear clean → inspect error boundary code for silent catches
+- **Custom error boundaries masking errors**: If `_error.tsx` (or `_error.js`) swallows errors without logging, the terminal may also appear clean → inspect error boundary code for silent catches
 - **Containerized/serverless deployments**: Server logs may route to container stdout rather than a visible terminal → check `docker logs`, provider dashboards (Vercel Functions, CloudWatch), or structured logging services
 
 ## Verification
